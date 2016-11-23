@@ -68,7 +68,7 @@ void HandleStatic(SOCKET clientSocket, char * filename)
 		file_size = ftell(fp);
 		fseek(fp, 0, SEEK_SET);
 		content = (char*)malloc(file_size + 1);
-		fread(content, file_size, 1, fp);
+		int i = fread(content, file_size, 1, fp);
 		content[file_size] = 0;
 
 		response = (char*)malloc(file_size + 100);
@@ -95,7 +95,7 @@ void HandleStatic(SOCKET clientSocket, char * filename)
 		sprintf(response, "%s", content);
 		//send(clientSocket, response, strlen(response), NULL);
 
-		if (send(clientSocket, response, strlen(response), 0) == SOCKET_ERROR)
+		if (send(clientSocket, content, file_size, 0) == SOCKET_ERROR)
 		{
 			printf("Send body failed!");
 			closesocket(clientSocket);
@@ -103,11 +103,11 @@ void HandleStatic(SOCKET clientSocket, char * filename)
 		else
 		{
 			// œ‘ æbody
-			printf(response);
+			//printf(content);
 			printf("\r\n\r\n");
 		}
 
-		free(content);
+		//free(content);
 	}
 }
 
