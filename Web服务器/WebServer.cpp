@@ -4,6 +4,7 @@
 #include<iostream>
 #include<string>
 #include<io.h>
+#include<thread>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -111,6 +112,39 @@ void HandleStatic(SOCKET clientSocket, char * filename)
 	}
 }
 
+void thread_task(int NewConnection)
+{
+	char				 revBuff[1000];
+	// 接受请求
+	ZeroMemory(revBuff, 1000);
+	if (recv(NewConnection, revBuff, 1000, 0) == SOCKET_ERROR)
+	{
+		printf("recv failed\n");
+		closesocket(NewConnection);
+	}
+
+	// 显示请求
+	printf(revBuff);
+
+	// 响应浏览器
+	char temp[BUFSIZ];
+	char file[BUFSIZ];
+
+	strcpy(file, "./www");
+
+	if (sscanf(revBuff, "%s %s", temp, file + 5) == 2)
+	{	
+		// 处理请求
+		HandleStatic(NewConnection, file);
+	}
+	else
+	{
+		printf("parameter error\n");
+	}
+	// 关闭Socket
+	closesocket(NewConnection);
+}
+
 int main()
 {
 	WSADATA              wsaData;
@@ -120,7 +154,7 @@ int main()
 	SOCKADDR_IN          ClientAddr;
 	int                  Port = 81;
 	int					 ClientAddrLen;
-	char				 revBuff[1000];
+	int					 test = 0;
 
 	// 初始化Windows Socket 2.0
 	if (WSAStartup(MAKEWORD(2, 0), &wsaData) != 0)
@@ -158,8 +192,8 @@ int main()
 	}
 	printf("bind is successsed\n");
 
-	// 开始监听，指定最大同时连接数为1024
-	if (listen(ListeningSocket, 1024) == SOCKET_ERROR)
+	// 开始监听，指定为最大连接数
+	if (listen(ListeningSocket, SOMAXCONN) == SOCKET_ERROR)
 	{
 		printf("listen failed\n");
 		closesocket(ListeningSocket);
@@ -178,37 +212,15 @@ int main()
 			printf("sock create failed\n");
 			closesocket(NewConnection);
 			//return -1;
-			continue;
+			//continue;
 		}
-		//printf("sock create successed\n");
-
-		// 接受请求
-		ZeroMemory(revBuff, 1000);
-		if (recv(NewConnection, revBuff, 1000, 0) == SOCKET_ERROR)
+		else
 		{
-			printf("recv failed\n");
-			closesocket(NewConnection);
-			//break;
-			continue;
+			printf("\nNO.%d\n", test++);
+			std::thread t(thread_task, NewConnection);
+			t.join();
 		}
-
-		// 显示请求
-		printf(revBuff);
-
-		// 响应浏览器
-		char temp[BUFSIZ];
-		char file[BUFSIZ];
-
-		strcpy(file, "./www");
-
-		if (sscanf(revBuff, "%s %s", temp, file + 5) != 2)
-			exit(1);
-
-		// 处理请求
-		HandleStatic(NewConnection, file);
-
-		// 关闭Socket
-		closesocket(NewConnection);
+		//Sleep(1000);
 	}
 
 	// 关闭监听Socket，然后退出应用程序  
